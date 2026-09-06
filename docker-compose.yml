@@ -1,0 +1,52 @@
+services:
+  litera-one-portal:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: litera-one-portal
+    env_file:
+      - .env
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - SESSION_SECRET=${SESSION_SECRET:?Set SESSION_SECRET in .env}
+      - SESSION_COOKIE_SECURE=false
+      - HTTPS_PROXY=${HTTPS_PROXY:-}
+      - HTTP_PROXY=${HTTP_PROXY:-}
+      - NO_PROXY=${NO_PROXY:-localhost,127.0.0.1}
+    ports:
+      - "3000:3000"
+    dns:
+      - 8.8.8.8
+      - 1.1.1.1
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://localhost:3000/health').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+
+  ms-connectivity-check:
+    image: node:22-alpine
+    container_name: ms-connectivity-check
+    environment:
+      - HTTPS_PROXY=${HTTPS_PROXY:-}
+      - HTTP_PROXY=${HTTP_PROXY:-}
+      - NO_PROXY=${NO_PROXY:-localhost,127.0.0.1}
+    dns:
+      - 8.8.8.8
+      - 1.1.1.1
+    entrypoint:
+      - node
+      - -e
+      - |
+        fetch('https://login.microsoftonline.com/organizations/v2.0/.well-known/openid-configuration')
+          .then((r) => {
+            console.log('microsoftonline status:', r.status);
+            process.exit(r.ok ? 0 : 1);
+          })
+          .catch((e) => {
+            console.error('microsoftonline unreachable:', e?.message || e);
+            process.exit(1);
+          });

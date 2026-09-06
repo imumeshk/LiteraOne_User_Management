@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title><%= title %></title>
+<link rel="stylesheet" href="/css/main.css"/>
+</head>
+<body class="login-body">
+<div class="login-wrap">
+  <div class="login-card" style="text-align:center">
+    <div style="font-size:48px;margin-bottom:12px"><%= code === 404 ? '🔍' : '⚠️' %></div>
+    <h2 class="login-title"><%= code %> — <%= title %></h2>
+    <p class="login-sub"><%= message %></p>
+    <a href="/" class="btn btn-primary" style="display:inline-flex;margin-top:16px">← Back to Portal</a>
+  </div>
+</div>
+</body>
+</html>

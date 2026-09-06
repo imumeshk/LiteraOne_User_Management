@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title><%= title %></title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="/css/main.css"/>
+</head>
+<body class="login-body">
+<div class="login-wrap">
+  <div class="login-card">
+    <div class="login-logo">
+      <span class="logo-text">Litera One</span>
+      <span class="logo-sub">Manager Portal</span>
+    </div>
+
+    <h2 class="login-title">Connect with Microsoft Entra</h2>
+    <p class="login-sub">Authentication uses the configured multi-tenant Entra app from <code>.env</code>.</p>
+
+    <% if (error) { %>
+    <div class="alert alert-error"><span>⚠</span> <%- error %></div>
+    <% } %>
+
+    <form method="POST" action="/auth/login" id="loginForm">
+      <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
+      <div class="form-row">
+        <label class="label">Tenant Authority</label>
+        <input class="inp" type="text" value="<%= tenantAuthority %>" readonly spellcheck="false"/>
+      </div>
+      <span class="hint">Client ID, client secret, and redirect URI are loaded from <code>.env</code>.</span>
+
+      <div class="permissions-box">
+        <div class="permissions-box-title">Required App Permissions <span style="font-weight:400">(Application type)</span></div>
+        <div class="perm-chips">
+          <span class="perm-chip">Directory.Read.All</span>
+          <span class="perm-chip">Application.ReadWrite.All</span>
+          <span class="perm-chip">AppRoleAssignment.ReadWrite.All</span>
+          <span class="perm-chip">Group.Read.All</span>
+          <span class="perm-chip">Synchronization.ReadWrite.All</span>
+          <span class="perm-chip">DelegatedPermissionGrant.ReadWrite.All</span>
+        </div>
+      </div>
+
+      <button type="submit" class="btn btn-primary btn-full" id="loginBtn" <%= isConfigured ? '' : 'disabled' %>>
+        <span id="loginSpinner" class="spinner" style="display:none"></span>
+        Connect
+      </button>
+    </form>
+  </div>
+</div>
+
+<script>
+document.getElementById('loginForm').addEventListener('submit', () => {
+  document.getElementById('loginBtn').disabled = true;
+  document.getElementById('loginSpinner').style.display = 'inline-block';
+});
+</script>
+</body>
+</html>

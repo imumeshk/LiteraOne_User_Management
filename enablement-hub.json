@@ -1,0 +1,120 @@
+{
+  "resources": [
+    {
+      "id": "vid01",
+      "title": "Getting Started with Litera One",
+      "type": "Video",
+      "icon": "▶",
+      "url": "https://www.litera.com/products/litera-one/",
+      "description": "A quick overview of the Litera One platform and its capabilities.",
+      "tags": [],
+      "showCopyLink": true
+    },
+    {
+      "id": "guide01",
+      "title": "Litera Check User Guide",
+      "type": "Guide",
+      "icon": "📄",
+      "url": "https://www.litera.com/products/foundation/litera-check/",
+      "description": "In-depth guide for using Litera Check for proofreading and document analysis.",
+      "tags": [],
+      "showOpenButton": true,
+      "showCopyLink": false
+    },
+    {
+      "id": "article01",
+      "title": "Understanding SCIM Sync",
+      "type": "Article",
+      "icon": "📰",
+      "url": "https://www.litera.com/company/news/",
+      "description": "Learn how SCIM provisioning works and how to configure it with Litera.",
+      "tags": [
+        "SCIM",
+        "Provisioning"
+      ]
+    },
+    {
+      "id": "guide02",
+      "title": "Metadact User Guide",
+      "type": "Guide",
+      "icon": "📄",
+      "url": "https://www.litera.com/products/workflow/metadact/",
+      "description": "Comprehensive guide to cleaning metadata from your documents.",
+      "tags": [
+        "Metadata",
+        "Security"
+      ]
+    },
+    {
+      "id": "guide03",
+      "title": "Content Companion User Guide",
+      "type": "Guide",
+      "icon": "📄",
+      "url": "https://www.litera.com/products/workflow/content-companion/",
+      "description": "A guide to using Content Companion for document creation and review.",
+      "tags": [
+        "Content",
+        "Productivity"
+      ],
+      "showOpenButton": true
+    },
+    {
+      "id": "guide5",
+      "title": "LO Admin Guide",
+      "type": "Article",
+      "icon": "📄",
+      "url": "https://one.litera.com",
+      "description": "lo-pack",
+      "tags": [
+        "LO Pack"
+      ]
+    }
+  ],
+  "exportButtons": [
+    {
+      "id": "pack-getting-started",
+      "text": "Export 'Getting Started' Pack",
+      "resourceIds": [
+        "vid01",
+        "guide01"
+      ]
+    },
+    {
+      "id": "Litera One-getting-started",
+      "text": "Export 'Getting Started' Pack",
+      "resourceIds": [
+        "vid01",
+        "guide01"
+      ]
+    },
+    {
+      "id": "pack-all-guides",
+      "text": "Export All Guides",
+      "resourceIds": [],
+      "resourceType": "Guide"
+    },
+    {
+      "id": "pack-scim",
+      "text": "Export SCIM Resources",
+      "resourceIds": [],
+      "resourceTag": "SCIM"
+    },
+    {
+      "id": "pack-productivity",
+      "text": "Export 'Productivity' Pack",
+      "resourceIds": [
+        "vid01",
+        "guide03"
+      ]
+    }
+  ],
+  "exportSettings": {
+    "pageTitle": "Litera Enablement Hub",
+    "headerText": "Your Custom Enablement Resources"
+  },
+  "viewSettings": {
+    "cardsPerRow": 4,
+    "showOpenButtonDefault": true,
+    "showCopyLinkDefault": true
+  }
+}

@@ -1,0 +1,1033 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title><%= title %></title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="/css/main.css"/>
+</head>
+<body class="<%= standaloneEnablementAdmin ? 'enablement-admin-only' : '' %>">
+
+<!-- SIDEBAR -->
+<% if (!standaloneEnablementAdmin) { %>
+<aside id="sidebar">
+  <div class="logo-area">
+    <div class="logo-text">Litera One</div>
+    <div class="logo-sub">Manager Portal</div>
+  </div>
+  <nav class="sidebar-nav">
+    <button class="nav-btn active" data-page="dashboard">
+      <span class="nav-icon">⊞</span> Dashboard
+    </button>
+    <button class="nav-btn" data-page="apps">
+      <span class="nav-icon">🗔</span> Entra Apps
+    </button>
+    <button class="nav-btn" data-page="deploy">
+      <span class="nav-icon">☁</span> Deployments
+    </button>
+    <% if (isAuthenticated) { %>
+      <button class="nav-btn" data-page="users-management">
+        <span class="nav-icon">👥</span> Users Management
+      </button>
+    <% } %>
+    <button class="nav-btn" data-page="console">
+      <span class="nav-icon">📋</span> Console Logs
+    </button>
+    <button class="nav-btn" data-page="enablement">
+      <span class="nav-icon">📖</span> Enablement Hub
+    </button>
+  </nav>
+  <div class="sidebar-footer">
+    <div class="user-row">
+      <div class="avatar" id="avatarEl"><%= orgName ? orgName[0].toUpperCase() : '?' %></div>
+      <div class="user-info">
+        <div class="user-name" id="orgNameEl"><%= isAuthenticated ? orgName : 'Not Signed In' %></div>
+        <div class="user-role" id="tenantIdEl"><%= isAuthenticated ? tenantId : 'Click Sign In to connect' %></div>
+      </div>
+    </div>
+    <datalist id="tenantOptions">
+      <option value="organizations"></option>
+      <option value="common"></option>
+      <option value="consumers"></option>
+    </datalist>
+    <% if (isAuthenticated) { %>
+      <form method="GET" action="/auth/login" id="switchTenantForm" style="margin:0 0 8px 0">
+        <div class="tenant-row">
+          <input class="tenant-select" id="switchTenantSelect" list="tenantOptions" value="<%= tenantId || 'organizations' %>" />
+          <button type="button" class="tenant-reset" id="switchTenantResetBtn" title="Reset tenant">↺</button>
+        </div>
+        <input type="hidden" name="tenant" id="switchTenantHidden" value="<%= tenantId || 'organizations' %>"/>
+        <input type="hidden" name="returnTo" value="/"/>
+        <button type="submit" class="btn-signin">↻ Switch Tenant</button>
+      </form>
+      <form method="POST" action="/auth/logout" style="margin:0">
+        <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
+        <button type="submit" class="btn-signout">✕ Sign Out</button>
+      </form>
+    <% } else { %>
+      <form method="GET" action="/auth/login" id="signinForm" style="margin:0">
+        <div class="tenant-row">
+          <input class="tenant-select" id="tenantSelect" list="tenantOptions" value="organizations" />
+          <button type="button" class="tenant-reset" id="tenantResetBtn" title="Reset tenant">↺</button>
+        </div>
+        <label class="remember-row">
+          <input type="checkbox" id="rememberTenant">
+          Remember Me
+        </label>
+        <input type="hidden" name="tenant" id="tenantHidden" value="organizations"/>
+        <button type="submit" class="btn-signin">→ Sign In</button>
+      </form>
+    <% } %>
+  </div>
+</aside>
+<% } %>
+
+<!-- MAIN -->
+<div id="main">
+
+  <!-- ══ DASHBOARD ══ -->
+  <section class="page active" id="page-dashboard">
+    <div class="page-inner">
+      <div class="page-header dashboard-head">
+        <div>
+          <h1 class="page-title" id="welcomeText">Welcome — <%= userName || orgName %></h1>
+          <div class="page-sub">Litera One Manager Portal</div>
+        </div>
+        <div class="dashboard-head-meta">
+          <div class="dashboard-mini-stat">
+            <span>Session</span>
+            <strong><%= isAuthenticated ? 'Connected' : 'Offline' %></strong>
+          </div>
+          <div class="dashboard-mini-stat">
+            <span>Tenant</span>
+            <strong><%= tenantId ? String(tenantId).slice(0, 8) + '…' : 'organizations' %></strong>
+          </div>
+        </div>
+      </div>
+
+      <div class="dashboard-hero mb-4">
+        <div class="dashboard-hero-main card">
+          <div class="section-label">Current Session</div>
+          <div class="dashboard-hero-title"><%= userName || orgName %></div>
+          <div class="dashboard-hero-sub">Manage Litera One administration tasks from a single workspace.</div>
+          <div class="dashboard-session-grid">
+            <div class="dashboard-session-item">
+              <span class="badge badge-blue">User</span>
+              <strong><%= userName || orgName %></strong>
+            </div>
+            <div class="dashboard-session-item">
+              <span class="badge badge-purple">Tenant ID</span>
+              <strong class="mono truncate"><%= tenantId || 'organizations' %></strong>
+            </div>
+          </div>
+        </div>
+
+        <div class="dashboard-hero-side">
+          <div class="card dashboard-quick-card">
+            <div class="section-label">Quick Status</div>
+            <div class="dashboard-quick-status">
+              <span class="dot <%= isAuthenticated ? 'dot-green' : 'dot-red' %>"></span>
+              <strong><%= isAuthenticated ? 'Graph Connected' : 'Sign-in Required' %></strong>
+            </div>
+            <div class="text-sm">
+              <% if (!isAuthenticated) { %>
+                Connect to Microsoft Graph to manage apps, deployments, and assignments.
+              <% } else if (typeof lastSync !== 'undefined' && lastSync) { %>
+                Last directory sync: <%= new Date(lastSync).toLocaleString() %>
+              <% } else { %>
+                Connected at <%- new Date().toLocaleTimeString() %>
+              <% } %>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="dashboard-section mb-2">
+        <div class="section-label">Workspace</div>
+        <div class="dashboard-section-title">Choose an area to manage</div>
+      </div>
+      <div class="tiles dashboard-tiles mb-4">
+        <div class="tile" onclick="navTo('apps')">
+          <div class="tile-icon ti-blue">🗔</div>
+          <h3>Entra Apps</h3>
+          <p>Manage permissions, users, and SCIM for Litera One apps.</p>
+        </div>
+        <div class="tile" onclick="navTo('deploy')">
+          <div class="tile-icon ti-purple">☁</div>
+          <h3>Deploy Add-ins</h3>
+          <p>Roll out Outlook and Word add-ins to your organization.</p>
+        </div>
+        <div class="tile" onclick="navTo('enablement')">
+          <div class="tile-icon ti-green">📖</div>
+          <h3>Enablement Hub</h3>
+          <p>Training resources and guides for end-users.</p>
+        </div>
+        <% if (isAuthenticated) { %>
+          <div class="tile" onclick="navTo('users-management')">
+            <div class="tile-icon ti-blue">👥</div>
+            <h3>Users Management</h3>
+            <p>Assign and remove users or groups across multiple Litera One applications.</p>
+          </div>
+        <% } %>
+      </div>
+
+      <div class="card dashboard-status-card" style="margin-top:20px">
+        <div class="dashboard-status-head">
+          <div>
+            <div class="section-label">System Status</div>
+            <div class="dashboard-section-title">Microsoft Graph connectivity</div>
+          </div>
+          <span class="badge <%= isAuthenticated ? 'badge-green' : 'badge-red' %>"><%= isAuthenticated ? 'Active' : 'Inactive' %></span>
+        </div>
+        <div class="dashboard-status-line mb-2">
+          <span class="dot <%= isAuthenticated ? 'dot-green' : 'dot-red' %>" id="statusDot"></span>
+          <span id="statusText" style="font-size:15px;font-weight:600">Microsoft Graph API: <%= isAuthenticated ? 'Connected' : 'Disconnected' %></span>
+        </div>
+        <div class="progress-wrap mb-2 dashboard-progress">
+          <div id="statusBar" style="height:100%;width:<%= isAuthenticated ? '100%' : '0%' %>;background:<%= isAuthenticated ? '#22c55e' : '#ef4444' %>;border-radius:20px"></div>
+        </div>
+        <div class="dashboard-status-grid">
+          <div class="dashboard-status-cell">
+            <span>Connection</span>
+            <strong><%= isAuthenticated ? 'Healthy' : 'Not connected' %></strong>
+          </div>
+          <div class="dashboard-status-cell">
+            <span>Directory Sync</span>
+            <strong id="lastSyncText">
+              <% if (!isAuthenticated) { %>
+                Not connected
+              <% } else if (typeof lastSync !== 'undefined' && lastSync) { %>
+                <%= new Date(lastSync).toLocaleString() %>
+              <% } else { %>
+                <%- new Date().toLocaleTimeString() %>
+              <% } %>
+            </strong>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══ LITERA ONE USERS MANAGEMENT ══ -->
+  <section class="page" id="page-users-management">
+    <div class="page-inner">
+      <div class="users-mgmt-breadcrumbs">
+        <span>Dashboard</span>
+        <span>/</span>
+        <span>Users</span>
+        <span>/</span>
+        <strong>Manage Users</strong>
+      </div>
+
+      <div class="page-header users-mgmt-page-head">
+        <div>
+          <h1 class="page-title">Manage Users</h1>
+          <div class="page-sub">Assign or remove users/groups across multiple Litera One applications</div>
+        </div>
+        <div class="users-mgmt-toolbar-meta">
+          <button class="btn btn-secondary" type="button" onclick="loadUsersManagementApps()">↻ Refresh Apps</button>
+          <button class="btn btn-secondary" type="button" onclick="exportUsersManagementRecords()">📥 Export History</button>
+        </div>
+      </div>
+
+      <div id="usersManagementPrompt" class="card" style="<%= isAuthenticated ? 'display:none' : 'display:flex' %>;align-items:center;justify-content:center;min-height:220px">
+        <div class="empty-state">
+          <div class="em-icon">🔐</div>
+          <div>Sign in to Microsoft to use Litera One Users Management</div>
+        </div>
+      </div>
+
+      <div id="usersManagementWorkspace" style="<%= isAuthenticated ? 'display:block' : 'display:none' %>">
+        <div class="card users-mgmt-commandbar mb-3">
+          <div class="users-mgmt-commandbar-left">
+            <div class="users-mgmt-button-group users-mgmt-mode-toggle">
+              <button class="users-mgmt-solid-btn green active" id="lumModeAssignBtn" onclick="setUsersManagementMode('assign', this)">Add User</button>
+              <button class="users-mgmt-solid-btn ghost" id="lumModeRemoveBtn" onclick="setUsersManagementMode('remove', this)">Remove User</button>
+            </div>
+            <div class="users-mgmt-button-group users-mgmt-principal-toggle">
+              <button class="users-mgmt-solid-btn active-filter active" id="lumUsersTabBtn" onclick="setUsersManagementPrincipalTab('users', this)">Users</button>
+              <button class="users-mgmt-solid-btn ghost" id="lumGroupsTabBtn" onclick="setUsersManagementPrincipalTab('groups', this)">Groups</button>
+            </div>
+          </div>
+          <div class="users-mgmt-commandbar-right">
+            <div class="inp-group users-mgmt-search">
+              <span class="inp-icon">🔍</span>
+              <input class="inp" id="lumSearchInput" placeholder="Search users or groups..." oninput="searchUsersManagementPrincipals()"/>
+            </div>
+            <button class="users-mgmt-filter-btn" type="button" onclick="clearUsersManagementPrincipals()">Clear People</button>
+            <button class="users-mgmt-filter-btn" type="button" onclick="clearUsersManagementApps()">Clear Apps</button>
+          </div>
+        </div>
+
+        <div class="users-mgmt-layout">
+          <div class="users-mgmt-main">
+            <div class="card users-mgmt-panel">
+              <div class="users-mgmt-panel-head">
+                <div>
+                  <div class="section-label" style="margin-bottom:0">Directory Results</div>
+                  <div class="users-mgmt-panel-title">Available Users / Groups</div>
+                </div>
+                <div class="users-mgmt-toolbar-meta">
+                  <label class="chk-label">
+                    <input type="checkbox" id="lumSelectAllResults" onchange="toggleSelectAllResults('lum', this)">
+                    Select visible
+                  </label>
+                  <span class="badge badge-gray"><span id="lumSelectedCount">0</span> selected</span>
+                </div>
+              </div>
+              <div class="search-result-list users-mgmt-results" id="lumResultList">
+                <div class="search-hint">Type to search...</div>
+              </div>
+            </div>
+
+            <div class="card users-mgmt-panel">
+              <div class="users-mgmt-panel-head">
+                <div>
+                  <div class="section-label" style="margin-bottom:0">Applications</div>
+                  <div class="users-mgmt-panel-title">Litera app assignments</div>
+                </div>
+                <div class="users-mgmt-toolbar-meta">
+                  <label class="chk-label">
+                    <input type="checkbox" id="lumAppsSelectAll" onchange="toggleUsersManagementAppsSelectAll(this)">
+                    Select all apps
+                  </label>
+                </div>
+              </div>
+              <div class="tbl-wrap users-mgmt-table-wrap" style="max-height:260px;overflow-y:auto">
+                <table class="tbl users-mgmt-table">
+                  <thead>
+                    <tr>
+                      <th class="chk-col"></th>
+                      <th>App Name</th>
+                      <th>Service Principal ID</th>
+                      <th>Status</th>
+                    </tr>
+                  </thead>
+                  <tbody id="lumAppsTbody">
+                    <tr><td colspan="4" class="tbl-empty">Loading apps...</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <div class="users-mgmt-side">
+            <div class="card users-mgmt-panel users-mgmt-summary-panel">
+              <div class="section-label">Action Summary</div>
+              <div class="users-mgmt-panel-title" id="lumSummaryTitle">Ready to assign</div>
+              <div class="users-mgmt-summary" id="lumSummaryText">
+                Mode: Assign • Selected Principals: 0 • Selected Apps: 0
+              </div>
+              <div class="users-mgmt-stat-strip">
+                <div class="users-mgmt-stat-box">
+                  <span>People</span>
+                  <strong id="lumStatPeople">0</strong>
+                </div>
+                <div class="users-mgmt-stat-box">
+                  <span>Apps</span>
+                  <strong id="lumStatApps">0</strong>
+                </div>
+                <div class="users-mgmt-stat-box">
+                  <span>History</span>
+                  <strong id="lumStatHistory">0</strong>
+                </div>
+              </div>
+              <button class="btn btn-primary btn-full" id="lumRunActionBtn" onclick="runUsersManagementAction()">Assign Selected</button>
+
+              <div class="users-mgmt-mini-panel">
+                <div class="users-mgmt-mini-head">
+                  <div class="section-label" style="margin-bottom:0">Selected People</div>
+                  <span id="lumSelectedPeopleCount">0</span>
+                </div>
+                <div id="lumSelectedChips" class="chip-list"></div>
+              </div>
+
+              <div class="users-mgmt-mini-panel">
+                <div class="users-mgmt-mini-head">
+                  <div class="section-label" style="margin-bottom:0">Selected Apps</div>
+                  <span id="lumSelectedAppsCount">0</span>
+                </div>
+                <div id="lumSelectedAppsChips" class="chip-list"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card users-mgmt-history">
+          <div class="flex items-center justify-between mb-2">
+            <div>
+              <div class="section-label" style="margin-bottom:0">Activity</div>
+              <div class="users-mgmt-panel-title users-mgmt-history-title">Assigned/Removed History</div>
+            </div>
+            <button class="btn btn-secondary btn-sm" type="button" onclick="exportUsersManagementRecords()">Export CSV</button>
+          </div>
+          <div class="tbl-wrap" style="max-height:320px;overflow-y:auto">
+            <table class="tbl">
+              <thead>
+                <tr>
+                  <th>Time</th>
+                  <th>Action</th>
+                  <th>App Name</th>
+                  <th>Principal</th>
+                  <th>Type</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody id="lumHistoryTbody">
+                <tr><td colspan="6" class="tbl-empty">No history yet</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══ ENTRA APPS ══ -->
+  <section class="page" id="page-apps">
+    <div class="page-inner">
+      <div class="page-header">
+        <div>
+          <h1 class="page-title">Enterprise Applications</h1>
+          <div class="page-sub">Manage Litera applications in Microsoft Entra</div>
+        </div>
+        <div class="flex gap-2">
+          <button class="btn btn-primary" id="btnNewScimApp" onclick="openScimModal()" <%= isAuthenticated ? '' : 'style="display:none"' %>>+ New SCIM App</button>
+          <button class="btn btn-secondary" onclick="loadApps()">↻ Refresh</button>
+        </div>
+      </div>
+      <div class="split">
+        <div class="split-left">
+          <div class="card card-sm mb-2">
+            <div class="inp-group mb-2">
+              <span class="inp-icon">🔍</span>
+              <input class="inp" id="appSearch" value="Litera" placeholder="Search apps (e.g. Litera)" onkeydown="if(event.key==='Enter')loadApps()"/>
+            </div>
+            <button class="btn btn-secondary btn-full" id="btnAppsSearch" onclick="loadApps()" <%= isAuthenticated ? '' : 'disabled' %>>Search</button>
+          </div>
+          <div id="appList" style="overflow-y:auto;max-height:calc(100vh - 260px)">
+            <div class="empty-state"><div class="em-icon">🗔</div><div>Search for apps</div></div>
+          </div>
+        </div>
+        <div class="split-right">
+          <div id="appDetail" style="display:none">
+            <div class="card mb-3">
+              <div class="flex justify-between items-start mb-3">
+                <div>
+                  <div class="flex items-center gap-2 mb-1">
+                    <span id="detailAppName" style="font-size:20px;font-weight:700"></span>
+                    <span id="consentBadge" style="display:none" title="Admin consent granted">✅</span>
+                    <span id="noConsentBadge" class="badge badge-yellow" style="display:none">⚠ No Consent</span>
+                  </div>
+                  <div class="mono text-xs" id="detailAppId"></div>
+                </div>
+                <div class="flex flex-wrap gap-2" style="flex-shrink:0">
+                  <button class="btn btn-warn btn-sm" id="btnGrantConsent" onclick="grantConsent()" style="display:none">🛡 Grant Consent</button>
+                  <button class="btn btn-secondary btn-sm" onclick="exportUsersCsv()">📥 CSV</button>
+                  <button class="btn btn-danger btn-sm" onclick="confirmDeleteApp()">🗑 Delete</button>
+                </div>
+              </div>
+              <!-- Visibility toggle -->
+              <div class="vis-row mb-4">
+                <button class="btn btn-sm" id="btnToggleVis" onclick="toggleVisibility()">Checking...</button>
+                <div>
+                  <div id="visStatus" style="font-size:13px;font-weight:600">Status: Unknown</div>
+                  <div class="text-xs">Recommended: Hidden for SCIM / Add-in apps</div>
+                </div>
+              </div>
+              <!-- Permissions -->
+              <div class="section-label">API Permissions</div>
+              <div id="permsList" class="perm-list mb-4"><span class="perm-chip">Loading...</span></div>
+              <!-- Assignments -->
+              <div class="flex justify-between items-center mb-2">
+                <span class="section-label" style="margin-bottom:0">Assigned Users / Groups</span>
+                <div class="flex gap-2">
+                  <button class="btn btn-secondary btn-sm" onclick="openAssignModal()">＋ Assign</button>
+                  <button class="btn btn-danger btn-sm" onclick="removeChecked()">🗑 Remove Checked</button>
+                </div>
+              </div>
+              <div class="inp-group mb-2">
+                <span class="inp-icon">🔍</span>
+                <input class="inp" id="assignFilter" placeholder="Filter assignments..." oninput="filterAssignments()"/>
+              </div>
+              <div class="tbl-wrap" style="max-height:300px;overflow-y:auto">
+                <table class="tbl" id="assignTable">
+                  <thead><tr>
+                    <th class="chk-col"><input type="checkbox" id="chkAllAssign" onchange="toggleAll('assignTbody',this)"></th>
+                    <th>Name</th><th>Email / ID</th><th>Type</th>
+                  </tr></thead>
+                  <tbody id="assignTbody"><tr><td colspan="4" class="tbl-empty">Select an app</td></tr></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+          <div id="appDetailEmpty" class="card" style="<%= isAuthenticated ? 'display:flex' : 'display:none' %>;align-items:center;justify-content:center;min-height:300px">
+            <div class="empty-state"><div class="em-icon">←</div><div>Select an app to view details</div></div>
+          </div>
+          <div id="appSigninPrompt" class="card" style="<%= isAuthenticated ? 'display:none' : 'display:flex' %>;align-items:center;justify-content:center;min-height:300px">
+            <div class="empty-state"><div class="em-icon">🔐</div><div>Please sign in to view app details</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══ CONSOLE ══ -->
+  <section class="page" id="page-console">
+    <div class="page-inner">
+      <div class="page-header">
+        <div>
+          <h1 class="page-title">Console Logs</h1>
+          <div class="page-sub">Execution and activity logs for this session</div>
+        </div>
+        <div class="flex gap-2">
+          <button class="btn btn-danger" onclick="clearConsole()">🗑 Clear</button>
+          <button class="btn btn-secondary" onclick="exportLogs()">💾 Export</button>
+        </div>
+      </div>
+      <div class="card">
+        <pre id="consoleLog" class="console-log-page"></pre>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══ DEPLOYMENTS ══ -->
+  <section class="page" id="page-deploy">
+    <div class="page-inner">
+      <div class="page-header">
+        <div>
+          <h1 class="page-title">Add-in Deployment</h1>
+          <div class="page-sub">Deploy and monitor Litera One add-ins for Outlook and Word</div>
+        </div>
+        <button class="btn btn-secondary" onclick="loadDeployments()">↻ Refresh Status</button>
+      </div>
+      <div class="deploy-grid">
+        <!-- Config panel -->
+        <div class="card">
+          <div class="section-label">Add-in Product</div>
+          <div class="radio-group mb-4">
+            <label class="radio-opt"><input type="radio" name="deployProduct" value="Outlook" checked onchange="updateDeployProduct()"> ✉ Litera One for Outlook</label>
+            <label class="radio-opt"><input type="radio" name="deployProduct" value="Word" onchange="updateDeployProduct()"> 📄 Litera One for Word</label>
+          </div>
+          <div class="section-label">Deployment Source</div>
+          <div class="radio-group mb-3">
+            <label class="radio-opt" id="deploySourceAppSourceOption"><input type="radio" name="deploySource" value="appsource" checked onchange="updateSourceUi()"> Microsoft AppSource (URL)</label>
+            <label class="radio-opt"><input type="radio" name="deploySource" value="manifest" onchange="updateSourceUi()"> Manifest File (XML/URL)</label>
+          </div>
+          <div class="form-row" id="sourceUrlRow">
+            <label class="label" id="srcLabel">AppSource URL</label>
+            <input class="inp" id="sourceUrl" value="https://marketplace.microsoft.com/en-us/product/office/wa200008417"/>
+          </div>
+          <div class="form-row" id="manifestRow" style="display:none">
+            <label class="label">Manifest URL or File Path</label>
+            <input class="inp" id="manifestUrl" placeholder="Paste manifest URL or file path"/>
+            <div class="text-xs" style="margin:8px 0 6px">or upload a manifest file</div>
+            <input class="inp" id="manifestFile" type="file" accept=".xml,.txt" onchange="onManifestFilePicked(event)"/>
+            <div id="manifestFileName" class="text-xs" style="margin-top:6px"></div>
+          </div>
+          <div class="section-label">Deployment Method</div>
+          <div class="radio-group mb-3">
+            <label class="radio-opt"><input type="radio" name="deployMethod" value="prepare" checked onchange="updateMethodUi()"> Prepare (this tool)</label>
+            <label class="radio-opt"><input type="radio" name="deployMethod" value="integrated" onchange="updateMethodUi()"> Deploy via M365 Admin Center</label>
+          </div>
+          <div id="integratedPanel" class="info-box mb-4" style="display:none">
+            <div style="font-weight:700;margin-bottom:6px">Integrated Apps (manual steps)</div>
+            <p class="text-sm mb-3">Use the M365 admin center to upload/acquire the add-in and assign users.</p>
+            <div class="flex gap-2">
+              <a href="https://admin.microsoft.com/adminportal/home#/Settings/IntegratedApps" target="_blank" class="btn btn-secondary btn-sm">↗ Open Integrated Apps</a>
+              <button class="btn btn-secondary btn-sm" onclick="exportTargetsCsv()">Export Targets CSV</button>
+            </div>
+          </div>
+          <div id="deployTargetsSection">
+            <hr class="divider"/>
+            <div class="section-label">Deployment Targets</div>
+            <div class="targets-box mb-3">
+              <div class="flex items-center justify-between mb-2">
+                <div class="flex items-center gap-2">
+                  <button class="btn btn-secondary btn-sm" onclick="openDeployAssignModal()">+ Add Users/Groups</button>
+                  <span class="text-xs" id="deployTargetCount">0 selected</span>
+                </div>
+                <button class="btn btn-danger btn-xs" id="clearTargetsBtn" style="display:none" onclick="clearDeployTargets()">Clear All</button>
+              </div>
+              <label class="chk-label mb-2">
+                <input type="checkbox" id="chkCopyTargets" onchange="toggleCopyTargetsRow()">
+                Copy targets from an existing Litera app
+              </label>
+              <div id="copyTargetsRow" class="flex gap-2 items-center" style="display:none;margin-top:8px">
+                <select class="inp inp-sm" id="copySourceApp" style="flex:1"></select>
+                <button class="btn btn-secondary btn-sm" onclick="copyTargetsFromApp()">Copy</button>
+              </div>
+            </div>
+            <div class="tbl-wrap" style="max-height:180px;overflow-y:auto">
+              <table class="tbl">
+                <thead><tr>
+                  <th class="chk-col"><input type="checkbox" onchange="toggleAll('deployTargetsTbody',this)"></th>
+                  <th>Name</th><th>Email / ID</th><th>Type</th>
+                </tr></thead>
+                <tbody id="deployTargetsTbody"><tr><td colspan="4" class="tbl-empty">No targets selected</td></tr></tbody>
+              </table>
+            </div>
+          </div>
+          <div class="deploy-action-wrap">
+            <button class="btn btn-primary mt-3 btn-full" id="btnDeploy" onclick="submitDeploy()">☁ Deploy Add-in</button>
+          </div>
+        </div>
+        <!-- Status panel -->
+        <div class="card">
+          <div class="section-label">Current Deployment Status</div>
+          <div id="deployStatusList">
+            <div class="empty-state"><div class="em-icon">☁</div><div>Click Refresh to load deployment status</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══ ENABLEMENT HUB ══ -->
+  <section class="page" id="page-enablement">
+      <div class="page-inner">
+        <div class="page-header">
+          <div>
+            <h1 class="page-title">Enablement Hub</h1>
+            <div class="page-sub">Training resources and guides for end-users</div>
+          </div>
+          <button class="btn btn-secondary" type="button" onclick="openEnablementExportModal()">📤 Export / Email Selected</button>
+        </div>
+        <div id="enExportButtons" class="flex gap-2 flex-wrap mb-3"></div>
+        <div class="en-toolbar mb-3">
+        <div class="flex items-center gap-3 flex-wrap">
+          <span style="font-size:12.5px;font-weight:600;color:var(--t2)">Filter:</span>
+          <div id="enFilterBtns" class="flex gap-2 flex-wrap">
+            <button class="btn btn-primary btn-xs" data-filter="All" onclick="filterEn('All',this)">All</button>
+            <button class="btn btn-secondary btn-xs" data-filter="video" onclick="filterEn('video',this)">📹 Videos</button>
+            <button class="btn btn-secondary btn-xs" data-filter="guide" onclick="filterEn('guide',this)">📘 Guides</button>
+            <button class="btn btn-secondary btn-xs" data-filter="doc" onclick="filterEn('doc',this)">📄 Docs</button>
+            <button class="btn btn-secondary btn-xs" data-filter="template" onclick="filterEn('template',this)">🗂 Templates</button>
+          </div>
+        </div>
+        <div class="flex items-center gap-2 flex-wrap">
+          <label class="chk-label"><input type="checkbox" id="chkSelectAllEn" onchange="selectAllEn(this)"> Select All</label>
+          <div class="inp-group" style="width:190px">
+            <span class="inp-icon">🔍</span>
+            <input class="inp inp-sm" id="enSearch" placeholder="Search resources..." oninput="loadEnablement()"/>
+          </div>
+          <select class="inp inp-sm" id="enPerRow" onchange="renderEnCards(window._enResources||[])" style="width:80px">
+            <option value="2">2/row</option><option value="3" selected>3/row</option><option value="4">4/row</option>
+          </select>
+        </div>
+      </div>
+      <div id="enContent" class="card" style="min-height:280px">
+        <div class="empty-state"><div class="em-icon">📖</div><div>Loading resources...</div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══ ENABLEMENT ADMIN ══ -->
+  <section class="page" id="page-enablement-admin">
+    <div class="page-inner">
+      <div class="page-header">
+        <div>
+          <h1 class="page-title">Enablement Admin</h1>
+          <div class="page-sub" id="enablementAdminSubtitle">Sign in to manage enablement resources, export buttons, and settings</div>
+        </div>
+      </div>
+
+      <div class="card mb-3" id="enablementAdminAuthCard">
+        <div class="enablement-admin-login-form">
+          <div class="enablement-admin-login-logo">↪</div>
+          <h2>Sign in to Enablement Admin</h2>
+          <p>Use your configured admin credentials to manage resources and export settings.</p>
+
+          <div id="enablementAdminStatus" class="text-sm mb-3">Checking status...</div>
+
+          <div class="enablement-admin-input-wrap">
+            <span class="enablement-admin-input-icon">✉</span>
+            <input class="inp" id="enablementAdminUser" placeholder="Admin username" />
+          </div>
+
+          <div class="enablement-admin-input-wrap">
+            <span class="enablement-admin-input-icon">🔒</span>
+            <input class="inp" id="enablementAdminPass" type="password" placeholder="Password" />
+            <button class="enablement-admin-eye" type="button" onclick="toggleEnablementAdminPassword()">👁</button>
+          </div>
+
+          <div class="enablement-admin-meta-row">
+            <span>Secure admin-only access</span>
+            <button type="button" class="enablement-admin-link-btn" onclick="showEnablementAdminResetHint()">Forgot password?</button>
+          </div>
+
+          <button class="btn btn-primary" type="button" onclick="loginEnablementAdmin()">Get Started</button>
+        </div>
+      </div>
+
+      <div id="enablementAdminWorkspace" style="display:none">
+        <div class="card mb-3">
+          <div class="flex items-center justify-between mb-3 flex-wrap gap-2">
+            <div id="enablementAdminWorkspaceStatus" class="text-sm">Logged in</div>
+            <div class="flex gap-2">
+              <button class="btn btn-secondary btn-sm" type="button" id="toggleEnablementJsonBtn" onclick="toggleEnablementJsonEditor()">Show JSON Editor</button>
+              <button class="btn btn-danger btn-sm" type="button" onclick="logoutEnablementAdmin()">Logout</button>
+            </div>
+          </div>
+          <div class="section-label">Quick Actions</div>
+          <div class="enablement-admin-grid">
+            <div class="enablement-admin-block">
+              <div class="text-sm mb-2" style="font-weight:700">Create Resource</div>
+              <div class="text-xs mb-2">Choose a resource type button to open the form.</div>
+              <div id="enablementResourceTypeButtons" class="flex gap-2 flex-wrap mb-2"></div>
+              <button class="btn btn-secondary btn-xs mb-2" type="button" onclick="openEnablementResourceForm('Custom')">+ Custom Type</button>
+
+              <div id="enablementResourceForm" style="display:none">
+                <div class="flex items-center justify-between mb-2">
+                  <div class="text-xs">Mode: <strong id="enablementResourceFormMode">Create</strong></div>
+                  <button class="btn btn-secondary btn-xs" id="cancelEnablementResourceEditBtn" type="button" style="display:none" onclick="cancelEnablementResourceEdit()">Cancel Edit</button>
+                </div>
+                <div class="text-xs mb-2">Selected Type: <strong id="selectedEnablementResourceType">-</strong></div>
+                <div class="flex gap-2 flex-wrap mb-2">
+                  <input class="inp inp-sm" id="newResourceId" placeholder="id (e.g. guide04)" style="max-width:220px" />
+                  <input class="inp inp-sm" id="newResourceTitle" placeholder="title" style="min-width:260px;flex:1" />
+                </div>
+                <div class="flex gap-2 flex-wrap mb-2">
+                  <input class="inp inp-sm" id="newResourceType" placeholder="type (Guide/Video/Doc)" style="max-width:220px" />
+                  <input class="inp inp-sm" id="newResourceIcon" placeholder="icon (optional)" style="max-width:220px" />
+                  <input class="inp inp-sm" id="newResourceUrl" placeholder="url" style="min-width:260px;flex:1" />
+                </div>
+                <input class="inp inp-sm mb-2" id="newResourceDescription" placeholder="description (optional)" />
+                <input class="inp inp-sm mb-2" id="newResourceTags" placeholder="tags comma-separated (optional)" />
+                <button class="btn btn-primary btn-sm" id="submitEnablementResourceBtn" type="button" onclick="createEnablementResource()">+ Create Resource</button>
+              </div>
+              <div id="enablementResourcePreview" class="enablement-resource-preview" style="display:none"></div>
+            </div>
+
+            <div class="enablement-admin-block">
+              <div class="text-sm mb-2" style="font-weight:700">Create New Export Button</div>
+              <div class="flex items-center justify-between mb-2">
+                <div class="text-xs">Mode: <strong id="enablementExportButtonFormMode">Create</strong></div>
+                <button class="btn btn-secondary btn-xs" id="cancelEnablementExportButtonEditBtn" type="button" style="display:none" onclick="cancelEnablementExportButtonEdit()">Cancel Edit</button>
+              </div>
+              <div class="flex gap-2 flex-wrap mb-2">
+                <input class="inp inp-sm" id="newExportButtonId" placeholder="id (e.g. pack-onboarding)" style="max-width:220px" />
+                <input class="inp inp-sm" id="newExportButtonText" placeholder="button text" style="min-width:260px;flex:1" />
+              </div>
+              <input class="inp inp-sm mb-2" id="newExportButtonResourceIds" placeholder="resource IDs comma-separated (optional)" />
+              <div class="flex gap-2 flex-wrap mb-2">
+                <input class="inp inp-sm" id="newExportButtonType" placeholder="resourceType (optional)" style="max-width:260px" />
+                <input class="inp inp-sm" id="newExportButtonTag" placeholder="resourceTag (optional)" style="max-width:260px" />
+              </div>
+              <button class="btn btn-primary btn-sm" id="submitEnablementExportButtonBtn" type="button" onclick="createEnablementExportButton()">+ Create Export Button</button>
+            </div>
+
+            <div class="enablement-admin-block">
+              <div class="text-sm mb-2" style="font-weight:700">Other Actions</div>
+              <div class="flex gap-2 flex-wrap mb-2">
+                <input class="inp inp-sm" id="deleteResourceId" placeholder="resource id to delete" style="max-width:220px" />
+                <button class="btn btn-danger btn-sm" type="button" onclick="deleteEnablementResource()">Delete Resource</button>
+              </div>
+              <div class="flex gap-2 flex-wrap">
+                <input class="inp inp-sm" id="deleteExportButtonId" placeholder="export button id to delete" style="max-width:220px" />
+                <button class="btn btn-danger btn-sm" type="button" onclick="deleteEnablementExportButton()">Delete Export Button</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card mb-3">
+          <div class="section-label">Existing Resources</div>
+          <div class="tbl-wrap" style="max-height:340px;overflow-y:auto">
+            <table class="tbl">
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Title</th>
+                  <th>Type</th>
+                  <th>URL</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="enablementAdminResourceTbody">
+                <tr><td colspan="5" class="tbl-empty">Loading resources...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="card mb-3">
+          <div class="section-label">Existing Export Buttons</div>
+          <div class="tbl-wrap" style="max-height:320px;overflow-y:auto">
+            <table class="tbl">
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Text</th>
+                  <th>Rule</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="enablementAdminExportButtonTbody">
+                <tr><td colspan="4" class="tbl-empty">Loading export buttons...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="card" id="enablementJsonEditorCard" style="display:none">
+          <div class="section-label">Configuration JSON</div>
+          <div class="text-xs mb-2">Edit and save <code>resources</code>, <code>exportButtons</code>, and settings.</div>
+          <textarea id="enablementAdminEditor" class="enablement-admin-editor" spellcheck="false"></textarea>
+          <div class="flex gap-2 mt-2">
+            <button class="btn btn-secondary" type="button" onclick="loadEnablementAdminConfig()">Load Config</button>
+            <button class="btn btn-primary" type="button" onclick="saveEnablementAdminConfig()">Save Config</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<!-- Deployment Status Detail Modal -->
+<div class="modal-backdrop" id="deployStatusModal" style="display:none">
+  <div class="modal modal-lg">
+    <div class="modal-title">Deployment Status Details</div>
+    <div id="deployStatusDetailBody" class="creation-log" style="min-height:220px;background:#f8fafc;color:#0f172a;border:1px solid var(--border)"></div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('deployStatusModal')">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- Grant Consent Modal -->
+<div class="modal-backdrop" id="grantConsentModal" style="display:none">
+  <div class="modal modal-lg">
+    <div class="modal-title">Grant Admin Consent</div>
+    <div class="text-sm mb-2" id="grantConsentAppName">Selected app</div>
+    <div class="section-label">Requested Permissions</div>
+    <div id="grantConsentPerms" class="perm-chips mb-2"></div>
+    <div id="grantConsentStatus" class="text-xs"></div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" type="button" onclick="closeModal('grantConsentModal')">Cancel</button>
+      <button class="btn btn-primary" type="button" onclick="confirmGrantConsent()">Grant Consent</button>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════ MODALS ════════════════ -->
+
+<!-- Assign Users/Groups Modal -->
+<div class="modal-backdrop" id="assignModal" style="display:none">
+  <div class="modal modal-lg">
+    <div class="modal-title">＋ Assign Users / Groups</div>
+    <div class="tab-bar">
+      <button class="tab-btn active" onclick="setAssignTab('users',this)">Users</button>
+      <button class="tab-btn" onclick="setAssignTab('groups',this)">Groups</button>
+    </div>
+    <div class="inp-group mb-2">
+      <span class="inp-icon">🔍</span>
+      <input class="inp" id="assignSearchInput" placeholder="Search..." oninput="searchAssignables()"/>
+    </div>
+    <label class="chk-label mb-2">
+      <input type="checkbox" id="assignSelectAllResults" onchange="toggleSelectAllResults('assign', this)">
+      Select all results shown
+    </label>
+    <label class="chk-label mb-2">
+      <input type="checkbox" id="chkAssignCopyFromApp" onchange="toggleCopyAssignRow('assign')">
+      Copy assignments from an existing Litera app
+    </label>
+    <div class="text-xs mb-2">Tip: select a source app to auto-copy, then click <strong>Assign Selected</strong>.</div>
+    <div id="assignCopyRow" class="flex gap-2 items-center mb-2" style="display:none">
+      <select class="inp inp-sm" id="assignCopySourceApp" style="flex:1" onchange="if(this.value){copyAssignmentsIntoSelection('assign')}"></select>
+      <button class="btn btn-secondary btn-sm" type="button" onclick="copyAssignmentsIntoSelection('assign')">Copy Now</button>
+    </div>
+    <div class="search-result-list" id="assignResultList">
+      <div class="search-hint">Type to search...</div>
+    </div>
+    <div class="mt-2 mb-2">
+      <div class="section-label">Selected (<span id="selectedCount">0</span>)</div>
+      <div id="selectedChips" class="chip-list"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('assignModal')">Cancel</button>
+      <button class="btn btn-primary" onclick="confirmAssign()">Assign Selected</button>
+    </div>
+  </div>
+</div>
+
+<!-- Deploy Targets Modal -->
+<div class="modal-backdrop" id="deployAssignModal" style="display:none">
+  <div class="modal modal-lg">
+    <div class="modal-title">＋ Add Deployment Targets</div>
+    <div class="tab-bar">
+      <button class="tab-btn active" onclick="setDeployAssignTab('users',this)">Users</button>
+      <button class="tab-btn" onclick="setDeployAssignTab('groups',this)">Groups</button>
+    </div>
+    <div class="inp-group mb-2">
+      <span class="inp-icon">🔍</span>
+      <input class="inp" id="deployAssignInput" placeholder="Search..." oninput="searchDeployAssignables()"/>
+    </div>
+    <label class="chk-label mb-2">
+      <input type="checkbox" id="deploySelectAllResults" onchange="toggleSelectAllResults('deploy', this)">
+      Select all results shown
+    </label>
+    <label class="chk-label mb-2">
+      <input type="checkbox" id="chkDeployAssignCopyFromApp" onchange="toggleCopyAssignRow('deploy')">
+      Copy assignments from an existing Litera app
+    </label>
+    <div id="deployAssignCopyRow" class="flex gap-2 items-center mb-2" style="display:none">
+      <select class="inp inp-sm" id="deployAssignCopySourceApp" style="flex:1"></select>
+      <button class="btn btn-secondary btn-sm" type="button" onclick="copyAssignmentsIntoSelection('deploy')">Copy</button>
+    </div>
+    <div class="search-result-list" id="deployAssignResultList">
+      <div class="search-hint">Type to search...</div>
+    </div>
+    <div class="mt-2">
+      <div class="section-label">Selected (<span id="deploySelectedCount">0</span>)</div>
+      <div id="deploySelectedChips" class="chip-list"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('deployAssignModal')">Cancel</button>
+      <button class="btn btn-primary" onclick="confirmDeployAssign()">Add Targets</button>
+    </div>
+  </div>
+</div>
+
+<!-- SCIM Creation Modal -->
+<div class="modal-backdrop" id="scimModal" style="display:none">
+  <div class="modal modal-lg">
+    <div class="modal-title">Create Litera One SCIM App</div>
+    <div class="step-bar mb-4" id="scimStepBar">
+      <div class="step active" id="scimStep1Ind">1. App Details</div>
+      <div class="step" id="scimStep2Ind">2. Configuration</div>
+      <div class="step" id="scimStep3Ind">3. Assignments</div>
+      <div class="step" id="scimStep4Ind">4. Creating...</div>
+    </div>
+    <!-- Step 1 -->
+    <div id="scimPane1">
+      <div class="form-row">
+        <label class="label">Application Name <span class="req">*</span></label>
+        <input class="inp" id="scimName" placeholder="e.g. Litera One SCIM" value="Litera One SCIM"/>
+      </div>
+      <div class="info-box">
+        This wizard creates a new Enterprise Application in your Azure AD for SCIM user provisioning and automatically configures the synchronization job.
+      </div>
+    </div>
+    <!-- Step 2 -->
+    <div id="scimPane2" style="display:none">
+      <div class="form-row">
+        <label class="label">SCIM Endpoint URL <span class="req">*</span></label>
+        <input class="inp mono" id="scimUrl" placeholder="https://your-scim-endpoint.example.com/scim"/>
+      </div>
+      <div class="form-row">
+        <label class="label">Secret Token <span class="req">*</span></label>
+        <div class="inp-suffix-wrap">
+          <input class="inp mono" id="scimSecretToken" type="password" placeholder="SCIM secret token value"/>
+          <button type="button" class="inp-suffix-btn" onclick="toggleScimToken()">👁</button>
+        </div>
+      </div>
+      <div class="form-row">
+        <button class="btn btn-secondary" type="button" onclick="testScimConnection()">Test Connection</button>
+        <div id="scimTestResult" class="text-xs" style="margin-top:8px"></div>
+      </div>
+    </div>
+    <!-- Step 3 -->
+    <div id="scimPane3" style="display:none">
+      <div class="section-label">Add initial users/groups <span style="font-weight:400">(optional)</span></div>
+      <div class="tab-bar">
+        <button class="tab-btn active" onclick="setScimAssignTab('users',this)">Users</button>
+        <button class="tab-btn" onclick="setScimAssignTab('groups',this)">Groups</button>
+      </div>
+      <div class="inp-group mb-2">
+        <span class="inp-icon">🔍</span>
+        <input class="inp" id="scimAssignInput" placeholder="Search users or groups..." oninput="searchScimAssignables()"/>
+      </div>
+      <label class="chk-label mb-2">
+        <input type="checkbox" id="scimSelectAllResults" onchange="toggleSelectAllResults('scim', this)">
+        Select all results shown
+      </label>
+      <label class="chk-label mb-2">
+        <input type="checkbox" id="chkScimAssignCopyFromApp" onchange="toggleCopyAssignRow('scim')">
+        Copy assignments from an existing Litera app
+      </label>
+      <div id="scimAssignCopyRow" class="flex gap-2 items-center mb-2" style="display:none">
+        <select class="inp inp-sm" id="scimAssignCopySourceApp" style="flex:1"></select>
+        <button class="btn btn-secondary btn-sm" type="button" onclick="copyAssignmentsIntoSelection('scim')">Copy</button>
+      </div>
+      <div class="search-result-list" id="scimAssignResultList">
+        <div class="search-hint">Type to search...</div>
+      </div>
+      <div id="scimAssignChips" class="chip-list mt-2"></div>
+    </div>
+    <!-- Step 4: Progress -->
+    <div id="scimPane4" style="display:none">
+      <div id="scimCreationLog" class="creation-log">Waiting to start...</div>
+      <div class="progress-wrap mt-2">
+        <div class="progress-bar" id="scimCreateProgress" style="width:0%"></div>
+      </div>
+      <div id="scimResultBox" style="display:none" class="mt-3"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" id="scimCancelBtn" onclick="scimCancel()">Cancel</button>
+      <button class="btn btn-secondary" id="scimBackBtn" onclick="scimBack()" style="display:none">← Back</button>
+      <button class="btn btn-primary" id="scimNextBtn" onclick="scimNext()">Next →</button>
+    </div>
+  </div>
+</div>
+
+<!-- Group Members Modal -->
+<div class="modal-backdrop" id="groupMembersModal" style="display:none">
+  <div class="modal modal-lg">
+    <div class="modal-title" id="groupMembersTitle">Group Members</div>
+    <div class="tbl-wrap" style="max-height:360px;overflow-y:auto">
+      <table class="tbl">
+        <thead><tr><th>Display Name</th><th>User Principal Name</th></tr></thead>
+        <tbody id="groupMembersTbody"></tbody>
+      </table>
+    </div>
+    <div class="modal-footer"><button class="btn btn-secondary" onclick="closeModal('groupMembersModal')">Close</button></div>
+  </div>
+</div>
+
+<!-- User App Assignments Modal -->
+<div class="modal-backdrop" id="userAppsModal" style="display:none">
+  <div class="modal modal-lg">
+    <div class="modal-title" id="userAppsTitle">User App Assignments</div>
+    <div class="tbl-wrap" style="max-height:360px;overflow-y:auto">
+      <table class="tbl">
+        <thead><tr><th>Application Name</th></tr></thead>
+        <tbody id="userAppsTbody"></tbody>
+      </table>
+    </div>
+    <div class="modal-footer"><button class="btn btn-secondary" onclick="closeModal('userAppsModal')">Close</button></div>
+  </div>
+</div>
+
+<!-- Enablement Export Modal -->
+<div class="modal-backdrop" id="enablementExportModal" style="display:none">
+  <div class="modal">
+    <div class="modal-title">Export Or Email Resources</div>
+    <div class="text-sm mb-2" id="enablementExportSummary">Choose what to do with the current selection.</div>
+    <div class="card" style="padding:14px">
+      <div class="text-xs mb-3" style="color:var(--t2)">If nothing is selected, the current filtered resources will be used.</div>
+      <div class="flex gap-2 flex-wrap">
+        <button class="btn btn-primary" type="button" onclick="performEnablementExport()">📤 Export HTML</button>
+        <button class="btn btn-secondary" type="button" onclick="emailEnablementSelection()">✉ Email HTML</button>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" type="button" onclick="closeModal('enablementExportModal')">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div id="toastContainer"></div>
+
+<script>
+  window.__INITIAL_PAGE__ = "<%= initialPage || 'dashboard' %>";
+  window.__STANDALONE_ENABLEMENT_ADMIN__ = <%= standaloneEnablementAdmin ? 'true' : 'false' %>;
+  window.__IS_AUTHENTICATED__ = <%= isAuthenticated ? 'true' : 'false' %>;
+  window.__CSRF_TOKEN__ = "<%= csrfToken || '' %>";
+</script>
+<script src="/js/portal.js"></script>
+</body>
+</html>
